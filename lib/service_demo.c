@@ -178,7 +178,8 @@ static char *demo_layer_wmts =
   "        units:\"%s\",\n"
   "        maxExtent: new OpenLayers.Bounds(%f,%f,%f,%f),\n"
   "        projection: new OpenLayers.Projection(\"%s\".toUpperCase()),\n"
-  "        sphericalMercator: %s\n"
+  "        sphericalMercator: %s\n,"
+  "        tileSize: new OpenLayers.Size(%d,%d)\n"
   "      }\n"
   "    );\n"
   "    map.addLayer(%s_wmts_layer);\n\n";
@@ -553,10 +554,13 @@ void _create_demo_wms(mapcache_context *ctx, mapcache_request_get_capabilities *
         apr_array_header_t *timedimvals = tileset->timedimension->get_all_entries(
                 ctx,tileset->timedimension,tileset);
         for(id=0;id<timedimvals->nelts;id++) {
+          char *idval;
+          char *dimparam_wms;
+          char *dimparam_singletile;
           if(id>1) break;
-          char *idval = APR_ARRAY_IDX(timedimvals,id,char*);
-          char *dimparam_wms = "    %s_wms_layer.mergeNewParams({%s:\"%s\"});\n";
-          char *dimparam_singletile = "    %s_slayer.mergeNewParams({%s:\"%s\"});\n";
+          idval = APR_ARRAY_IDX(timedimvals,id,char*);
+          dimparam_wms = "    %s_wms_layer.mergeNewParams({%s:\"%s\"});\n";
+          dimparam_singletile = "    %s_slayer.mergeNewParams({%s:\"%s\"});\n";
           ol_layer_name = apr_psprintf(ctx->pool, "%s_%s_%s", tileset->name, grid->name, idval);
           /* normalize name to something that is a valid variable name */
           for(i=0; i<strlen(ol_layer_name); i++)
@@ -865,6 +869,8 @@ void _create_demo_wmts(mapcache_context *ctx, mapcache_request_get_capabilities 
                                 grid->extent.maxy,
                                 grid->srs,
                                 smerc,
+                                grid->tile_sx,
+                                grid->tile_sy,
                                 ol_layer_name);
         caps = apr_psprintf(ctx->pool,"%s%s",caps,ol_layer);
       } else {
@@ -873,9 +879,11 @@ void _create_demo_wmts(mapcache_context *ctx, mapcache_request_get_capabilities 
                 ctx,tileset->timedimension,tileset);
         GC_CHECK_ERROR(ctx);
         for(id=0;id<timedimvals->nelts;id++) {
+          char *idval;
+          char *dimparam;
           if(id>1) break; /* we don't want all the entries in the demo interface */
-          char *idval = APR_ARRAY_IDX(timedimvals,id,char*);
-          char *dimparam = "%s_wmts_layer.mergeNewParams({%s:\"%s\"});\n";
+          idval = APR_ARRAY_IDX(timedimvals,id,char*);
+          dimparam = "%s_wmts_layer.mergeNewParams({%s:\"%s\"});\n";
           ol_layer_name = apr_psprintf(ctx->pool, "%s_%s_%s", tileset->name, grid->name, idval);
           /* normalize name to something that is a valid variable name */
           for(i=0; i<strlen(ol_layer_name); i++)
