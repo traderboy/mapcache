@@ -287,20 +287,23 @@ apr_table_t* _mapcache_cache_rest_headers(mapcache_context *ctx, mapcache_tile *
    mapcache_rest_operation *operation) {
   apr_table_t *ret = apr_table_make(ctx->pool,3);
   const apr_array_header_t *array;
+  apr_table_entry_t *elts;
+  int i;
   
   if(config->common_headers) {
     array = apr_table_elts(config->common_headers);
-    apr_table_entry_t *elts = (apr_table_entry_t *) array->elts;
-    int i;
+	
+    elts = (apr_table_entry_t *) array->elts;
+    
     for (i = 0; i < array->nelts; i++) {
       apr_table_set(ret, elts[i].key,elts[i].val);
     }
   }
   if(operation->headers) {
     array = apr_table_elts(operation->headers);
-    apr_table_entry_t *elts = (apr_table_entry_t *) array->elts;
-    int i;
-    for (i = 0; i < array->nelts; i++) {
+    elts = (apr_table_entry_t *) array->elts;
+
+    for ( i = 0; i < array->nelts; i++) {
       apr_table_set(ret, elts[i].key,elts[i].val);
     }
   }
@@ -439,14 +442,19 @@ static void _mapcache_cache_google_headers_add(mapcache_context *ctx, const char
   const apr_array_header_t *ahead;
   apr_table_entry_t *elts;
   int i,nCanonicalHeaders=0,cnt=0;
-  assert(tile->tileset->cache->type == MAPCACHE_CACHE_REST);
-  mapcache_cache_rest *rest = (mapcache_cache_rest*)tile->tileset->cache;
-  assert(rest->provider == MAPCACHE_REST_PROVIDER_GOOGLE);
-  mapcache_cache_google *google = (mapcache_cache_google*)tile->tileset->cache;
-  time_t now = time(NULL);
-  struct tm *tnow = gmtime(&now);
+  mapcache_cache_rest *rest;
+  mapcache_cache_google *google;
+  time_t now;
   unsigned char sha[65];
   char b64[150];
+  struct tm *tnow = gmtime(&now);
+
+  assert(tile->tileset->cache->type == MAPCACHE_CACHE_REST);
+  rest = (mapcache_cache_rest*)tile->tileset->cache;
+  assert(rest->provider == MAPCACHE_REST_PROVIDER_GOOGLE);
+  google = (mapcache_cache_google*)tile->tileset->cache;
+  now = time(NULL);
+  
   sha[64]=0;
 
   strftime(x_amz_date, 64 , "%a, %d %b %Y %H:%M:%S GMT", tnow);
@@ -518,14 +526,19 @@ static void _mapcache_cache_azure_headers_add(mapcache_context *ctx, const char*
   const apr_array_header_t *ahead;
   apr_table_entry_t *elts;
   int i,nCanonicalHeaders=0,cnt=0;
-  assert(tile->tileset->cache->type == MAPCACHE_CACHE_REST);
-  mapcache_cache_rest *rest = (mapcache_cache_rest*)tile->tileset->cache;
-  assert(rest->provider == MAPCACHE_REST_PROVIDER_AZURE);
-  mapcache_cache_azure *azure = (mapcache_cache_azure*)tile->tileset->cache;
+  mapcache_cache_rest *rest;
+  mapcache_cache_azure *azure;
   time_t now = time(NULL);
   struct tm *tnow = gmtime(&now);
   unsigned char sha[65];
   char *b64sign,*keyub64;
+  char *k;
+
+  assert(tile->tileset->cache->type == MAPCACHE_CACHE_REST);
+  rest = (mapcache_cache_rest*)tile->tileset->cache;
+  assert(rest->provider == MAPCACHE_REST_PROVIDER_AZURE);
+  azure = (mapcache_cache_azure*)tile->tileset->cache;
+  
   sha[64]=0;
 
   strftime(x_ms_date, sizeof(x_ms_date), "%a, %d %b %Y %H:%M:%S GMT", tnow);
@@ -563,7 +576,7 @@ static void _mapcache_cache_azure_headers_add(mapcache_context *ctx, const char*
 
   for (i = 0; i < ahead->nelts; i++) {
     if(strncmp(elts[i].key,"x-ms-",5) || elts[i].key[5]==0) continue;
-    char *k = aheaders[nCanonicalHeaders] = apr_pstrdup(ctx->pool, elts[i].key);
+    k = aheaders[nCanonicalHeaders] = apr_pstrdup(ctx->pool, elts[i].key);
     while(*k) {
       *k = tolower(*k);
       k++;
@@ -616,12 +629,14 @@ static void _mapcache_cache_s3_headers_add(mapcache_context *ctx, const char* me
   const apr_array_header_t *ahead;
   char *tosign, *key, *canonical_request, x_amz_date[64], *resource = url, **aheaders, *auth;
   apr_table_entry_t *elts;
+  mapcache_cache_rest *rest;
+  mapcache_cache_s3 *s3;
 
   sha1[64]=sha2[64]=0;
   assert(tile->tileset->cache->type == MAPCACHE_CACHE_REST);
-  mapcache_cache_rest *rest = (mapcache_cache_rest*)tile->tileset->cache;
+  rest = (mapcache_cache_rest*)tile->tileset->cache;
   assert(rest->provider == MAPCACHE_REST_PROVIDER_S3);
-  mapcache_cache_s3 *s3 = (mapcache_cache_s3*)tile->tileset->cache;
+  s3 = (mapcache_cache_s3*)tile->tileset->cache;
 
   if(!strcmp(method,"PUT")) {
     assert(tile->encoded_data);
@@ -837,6 +852,7 @@ static void _mapcache_cache_rest_multi_set(mapcache_context *ctx, mapcache_tile 
   apr_table_t *headers;
   CURL *curl = curl_easy_init();
   int i;
+  mapcache_tile *tile;
 
   if(!curl) {
     ctx->set_error(ctx,500,"failed to create curl handle");
@@ -846,7 +862,7 @@ static void _mapcache_cache_rest_multi_set(mapcache_context *ctx, mapcache_tile 
   for(i=0; i<ntiles; i++) {
     if(i)
       curl_easy_reset(curl);
-    mapcache_tile *tile = tiles + i;
+    tile = tiles + i;
     _mapcache_cache_rest_tile_url(ctx, tile, &rcache->rest, &rcache->rest.set_tile, &url);
     headers = _mapcache_cache_rest_headers(ctx, tile, &rcache->rest, &rcache->rest.set_tile);
 
