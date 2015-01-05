@@ -42,7 +42,24 @@
 #endif
 #endif
 
+#ifndef HAVE_TIMEGM
+time_t timegm(struct tm *tm)
+{
+time_t t, tdiff;
+struct tm in, gtime, ltime;
 
+memcpy(&in, tm, sizeof(in));
+t = mktime(&in);
+
+memcpy(&gtime, gmtime(&t), sizeof(gtime));
+memcpy(&ltime, localtime(&t), sizeof(ltime));
+gtime.tm_isdst = ltime.tm_isdst;
+tdiff = t - mktime(&gtime);
+
+memcpy(&in, tm, sizeof(in));
+return mktime(&in) + tdiff;
+}
+#endif
 
 static int _mapcache_dimension_intervals_validate(mapcache_context *ctx, mapcache_dimension *dim, char **value)
 {
