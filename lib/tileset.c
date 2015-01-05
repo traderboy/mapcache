@@ -554,7 +554,6 @@ mapcache_tile* mapcache_tileset_tile_clone(apr_pool_t *pool, mapcache_tile *src)
   tile->x = src->x;
   tile->y = src->y;
   tile->z = src->z;
-  tile->allow_redirect = src->allow_redirect;
   return tile;
 }
 
@@ -617,13 +616,16 @@ mapcache_feature_info* mapcache_tileset_feature_info_create(apr_pool_t *pool, ma
 }
 
 void mapcache_tileset_assemble_out_of_zoom_tile(mapcache_context *ctx, mapcache_tile *tile) {
-  assert(tile->grid_link->outofzoom_strategy == MAPCACHE_OUTOFZOOM_REASSEMBLE);
-
+  
   /* we have at most 4 tiles composing the requested tile */
   mapcache_extent tile_bbox;
   double shrink_x, shrink_y, scalefactor;
   int x[4],y[4];
   int i, n=1;
+  mapcache_tile *childtile;
+
+  assert(tile->grid_link->outofzoom_strategy == MAPCACHE_OUTOFZOOM_REASSEMBLE);
+
   mapcache_grid_get_extent(ctx,tile->grid_link->grid,tile->x,tile->y,tile->z, &tile_bbox);
 
   /*
@@ -655,15 +657,15 @@ void mapcache_tileset_assemble_out_of_zoom_tile(mapcache_context *ctx, mapcache_
   tile_bbox.minx -= shrink_x;
   tile_bbox.miny -= shrink_y;
 
-  mapcache_tile *childtile = mapcache_tileset_tile_clone(ctx->pool,tile);
+  childtile = mapcache_tileset_tile_clone(ctx->pool,tile);
   childtile->z = tile->grid_link->max_cached_zoom;
   scalefactor = childtile->grid_link->grid->levels[childtile->z]->resolution/tile->grid_link->grid->levels[tile->z]->resolution;
   tile->nodata = 1;
   for(i=0;i<n;i++) {
-    childtile->x = x[i];
-    childtile->y = y[i];
     mapcache_extent childtile_bbox;
     double dstminx,dstminy;
+    childtile->x = x[i];
+    childtile->y = y[i];
     mapcache_tileset_tile_get(ctx,childtile);
     GC_CHECK_ERROR(ctx);
     if(childtile->nodata) {
@@ -701,11 +703,12 @@ void mapcache_tileset_assemble_out_of_zoom_tile(mapcache_context *ctx, mapcache_
       unsigned char *srcpixptr;
       unsigned int dstminxi = - dstminx / scalefactor;
       unsigned int dstminyi = - dstminy / scalefactor;
+      unsigned char *row_ptr;
       srcpixptr = &(childtile->raw_image->data[dstminyi * childtile->raw_image->stride + dstminxi * 4]);
       /*
       ctx->log(ctx, MAPCACHE_WARN, "factor: %g. pixel: %d,%d (val:%d)",scalefactor,dstminxi,dstminyi,*((unsigned int*)srcpixptr));
        */
-      unsigned char *row_ptr = tile->raw_image->data;
+      row_ptr = tile->raw_image->data;
       for(row=0;row<tile->raw_image->h;row++) {
         unsigned char *pix_ptr = row_ptr;
         for(col=0;col<tile->raw_image->w;col++) {
