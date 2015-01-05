@@ -61,6 +61,7 @@ return mktime(&in) + tdiff;
 }
 #endif
 
+
 static int _mapcache_dimension_intervals_validate(mapcache_context *ctx, mapcache_dimension *dim, char **value)
 {
   int i;
@@ -590,8 +591,8 @@ void _mapcache_timedimension_sqlite_parse_xml(mapcache_context *ctx, mapcache_ti
 #endif
 
 char *mapcache_ogc_strptime(const char *value, struct tm *ts, mapcache_time_interval_t *ti) {
-  memset (ts, '\0', sizeof (*ts));
   char *valueptr;
+  memset (ts, '\0', sizeof (*ts));
   valueptr = strptime(value,"%Y-%m-%dT%H:%M:%SZ",ts);
   *ti = MAPCACHE_TINTERVAL_SECOND;
   if(valueptr) return valueptr;
@@ -629,14 +630,9 @@ apr_array_header_t* mapcache_timedimension_get_entries_for_value(mapcache_contex
     return NULL;
   }
   
-  if(*valueptr == '/' || (*valueptr == '-' && *(valueptr+1) == '-')) {
+  if(*valueptr == '/') {
     /* we have a second (end) time */
-    if (*valueptr == '/') {
-      valueptr++;
-    }
-    else {
-      valueptr += 2;
-    }
+    valueptr++;
     valueptr = mapcache_ogc_strptime(valueptr,&tm_end,&tie);
     if(!valueptr) {
       ctx->set_error(ctx,400,"failed to parse end time in %s",value);
