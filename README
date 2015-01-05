@@ -1,2 +1,4 @@
+This fork is just to provide a version that will compile with VS 2012 for Windows 8 64 bit.
+
 new code repository is at https://github.com/mapserver/mapcache
 
