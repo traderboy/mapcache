@@ -38,6 +38,10 @@
 #include <unistd.h>
 #endif
 
+//added
+typedef __int32 int32_t;
+typedef unsigned __int32 uint32_t;
+
 #ifndef M_PI
 #define M_PI 3.14159265358979323846264338327
 #endif
