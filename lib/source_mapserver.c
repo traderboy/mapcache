@@ -126,9 +126,9 @@ static struct mc_mapobj* _get_mapboj(mapcache_context *ctx, mapcache_map *map) {
 static void _release_mapboj(mapcache_context *ctx, mapcache_map *map, struct mc_mapobj *mcmap)
 {
   mapcache_source_mapserver *src = (mapcache_source_mapserver*) map->tileset->source;
-  msFreeLabelCache(&mcmap->map->labelcache);
   apr_reslist_t *mapobjs = apr_hash_get(mapobj_container,src->source.name, APR_HASH_KEY_STRING);
   assert(mapobjs);
+  msFreeLabelCache(&mcmap->map->labelcache);
   if (GC_HAS_ERROR(ctx)) {
     apr_reslist_invalidate(mapobjs, (void*) mcmap);
   } else {
@@ -142,6 +142,9 @@ static void _release_mapboj(mapcache_context *ctx, mapcache_map *map, struct mc_
 void _mapcache_source_mapserver_render_map(mapcache_context *ctx, mapcache_map *map)
 {
   errorObj *errors = NULL;
+  double dx, dy;
+  imageObj *image;
+  rasterBufferObj rb;
 
   struct mc_mapobj *mcmap = _get_mapboj(ctx,map);
   GC_CHECK_ERROR(ctx);
@@ -173,7 +176,6 @@ void _mapcache_source_mapserver_render_map(mapcache_context *ctx, mapcache_map *
   ** pixel to center of pixel.  Here we try to adjust the WMS extents
   ** in by half a pixel.
   */
-  double dx, dy;
   dx = (map->extent.maxx - map->extent.minx) / (map->width*2);
   dy = (map->extent.maxy - map->extent.miny) / (map->height*2);
 
@@ -183,15 +185,14 @@ void _mapcache_source_mapserver_render_map(mapcache_context *ctx, mapcache_map *
   mcmap->map->extent.maxy = map->extent.maxy - dy;
   msMapSetSize(mcmap->map, map->width, map->height);
 
-  imageObj *image = msDrawMap(mcmap->map, MS_FALSE);
+  image = msDrawMap(mcmap->map, MS_FALSE);
   if(!image) {
     errors = msGetErrorObj();
     ctx->set_error(ctx,500, "MapServer failed to create image. MapServer reports: %s", errors->message);
     _release_mapboj(ctx,map,mcmap);
     return;
   }
-  rasterBufferObj rb;
-
+  
   if(image->format->vtable->supports_pixel_buffer) {
     image->format->vtable->getRasterBufferHandle(image,&rb);
   } else {
@@ -237,6 +238,7 @@ void _mapcache_source_mapserver_configuration_parse_xml(mapcache_context *ctx, e
 void _mapcache_source_mapserver_configuration_check(mapcache_context *ctx, mapcache_cfg *cfg,
     mapcache_source *source)
 {
+  mapObj *map;
   mapcache_source_mapserver *src = (mapcache_source_mapserver*)source;
   /* check all required parameters are configured */
   if(!src->mapfile) {
@@ -250,7 +252,7 @@ void _mapcache_source_mapserver_configuration_check(mapcache_context *ctx, mapca
   msSetup();
 
   /* do a test load to check the mapfile is correct */
-  mapObj *map = msLoadMap(src->mapfile, NULL);
+  map = msLoadMap(src->mapfile, NULL);
   if(!map) {
     msWriteError(stderr);
     ctx->set_error(ctx,400,"failed to load mapfile \"%s\"",src->mapfile);
