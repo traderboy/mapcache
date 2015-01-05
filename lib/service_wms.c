@@ -672,8 +672,9 @@ void _mapcache_service_wms_parse_request(mapcache_context *ctx, mapcache_service
             /* we need to create more tile/map entries */
               if(timedim_selected->nelts > 1) {
                 /* apr pools have no realloc */
+                mapcache_tile** tmptiles;
                 nallocated = nallocated + timedim_selected->nelts - 1;
-                mapcache_tile** tmptiles =
+                tmptiles =
                         apr_palloc(ctx->pool, nallocated * sizeof(mapcache_tile*));
                 for(i=0;i<tile_req->ntiles;i++) {
                   tmptiles[i] = tile_req->tiles[i];
@@ -695,8 +696,9 @@ void _mapcache_service_wms_parse_request(mapcache_context *ctx, mapcache_service
             /* we need to create more tile/map entries */
               if(timedim_selected->nelts > 1) {
                 /* apr pools have no realloc */
+                mapcache_map** tmpmaps;
                 nallocated = nallocated + timedim_selected->nelts - 1;
-                mapcache_map** tmpmaps =
+                tmpmaps =
                         apr_palloc(ctx->pool, nallocated * sizeof(mapcache_map*));
                 for(i=0;i<map_req->nmaps;i++) {
                   tmpmaps[i] = map_req->maps[i];
