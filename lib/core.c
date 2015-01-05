@@ -196,12 +196,11 @@ mapcache_http_response *mapcache_core_get_tile(mapcache_context *ctx, mapcache_r
 {
   int expires = 0;
   mapcache_http_response *response;
-  int i,is_empty=1; /* response image is initially empty */;
-  int header_only=0;
-  mapcache_tile *ht = NULL;
+  int i,is_empty=1 /* response image is initially empty */;
   char *timestr;
   mapcache_image *base=NULL;
   mapcache_image_format *format = NULL;
+  mapcache_image_format_type t;
 
 #ifdef DEBUG
   if(req_tile->ntiles ==0) {
@@ -210,29 +209,11 @@ mapcache_http_response *mapcache_core_get_tile(mapcache_context *ctx, mapcache_r
   }
 #endif
   response = mapcache_http_response_create(ctx->pool);
-  
-  if(ctx->supports_redirects && req_tile->ntiles == 1) {
-    ht = req_tile->tiles[0];
-    if(ht->tileset->read_only && ht->tileset->cache->type == MAPCACHE_CACHE_REST) {
-      mapcache_cache_rest *rc = (mapcache_cache_rest*)ht->tileset->cache;
-      if(rc->use_redirects) {
-        ht->allow_redirect = 1;
-        header_only = 1;
-      }
-    }
-  }
 
 
   mapcache_prefetch_tiles(ctx,req_tile->tiles,req_tile->ntiles);
   if(GC_HAS_ERROR(ctx))
     return NULL;
-
-  if(header_only && ht->redirect) {
-    response->code = 302;
-    apr_table_set(response->headers,"Location",ht->redirect);
-    response->data = mapcache_buffer_create(0, ctx->pool);
-    return response;
-  }
 
   /* loop through tiles, and eventually merge them vertically together */
   for(i=0; i<req_tile->ntiles; i++) {
@@ -316,20 +297,20 @@ mapcache_http_response *mapcache_core_get_tile(mapcache_context *ctx, mapcache_r
         return NULL;
       }
     } else {
+      unsigned char empty[5] = {'#',0,0,0,0};
 #ifdef DEBUG
       if(!is_empty) {
         ctx->set_error(ctx,500,"BUG: no image data to encode, but tile not marked as empty");
         return NULL;
       }
 #endif
-      unsigned char empty[5] = {'#',0,0,0,0};
       response->data = mapcache_empty_png_decode(ctx,empty,&is_empty); /* is_empty is unchanged and left to 1 */
       format = mapcache_configuration_get_image_format(ctx->config,"PNG8");
     }
   }
   
   /* compute the content-type */
-  mapcache_image_format_type t = mapcache_imageio_header_sniff(ctx,response->data);
+  t = mapcache_imageio_header_sniff(ctx,response->data);
   if(t == GC_PNG)
     apr_table_set(response->headers,"Content-Type","image/png");
   else if(t == GC_JPEG)
@@ -417,11 +398,25 @@ mapcache_map* mapcache_assemble_maps(mapcache_context *ctx, mapcache_map **maps,
       maps[i]->nodata = 1;
     }
   }
-  if(!basemap) {
+
+  /* if only empty tiles are hit, return an empty image with the correct 
+   * dimensions instead of returning an error.
+  */
+  if(!basemap && ntiles > 0) {
+    maps[0]->raw_image = mapcache_image_create_with_data(ctx,maps[0]->width,maps[0]->height);
+    if(ntiles == 0) {
+      maps[0]->raw_image->has_alpha = MC_ALPHA_YES;
+      maps[0]->raw_image->is_blank = MC_EMPTY_YES;
+    }
+    basemap = maps[0];
+  }
+
+  if (!basemap) {
     ctx->set_error(ctx,404,
                   "no tiles containing image data could be retrieved to create map (not in cache, and/or no source configured)");
     return NULL;
   }
+
   return basemap;
 }
 
