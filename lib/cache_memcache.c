@@ -117,11 +117,15 @@ static void _mapcache_cache_memcache_set(mapcache_context *ctx, mapcache_tile *t
 {
   char *key;
   int rv;
+  mapcache_cache_memcache *cache;
+  char *data;
+  apr_time_t now;
+  
   /* set expiration to one day if not configured */
   int expires = 86400;
   if(tile->tileset->auto_expire)
     expires = tile->tileset->auto_expire;
-  mapcache_cache_memcache *cache = (mapcache_cache_memcache*)tile->tileset->cache;
+  cache = (mapcache_cache_memcache*)tile->tileset->cache;
   key = mapcache_util_get_tile_key(ctx, tile,NULL," \r\n\t\f\e\a\b","#");
   GC_CHECK_ERROR(ctx);
 
@@ -132,8 +136,8 @@ static void _mapcache_cache_memcache_set(mapcache_context *ctx, mapcache_tile *t
 
   /* concatenate the current time to the end of the memcache data so we can extract it out
    * when we re-get the tile */
-  char *data = calloc(1,tile->encoded_data->size+sizeof(apr_time_t));
-  apr_time_t now = apr_time_now();
+  data = calloc(1,tile->encoded_data->size+sizeof(apr_time_t));
+  now = apr_time_now();
   apr_pool_cleanup_register(ctx->pool, data, (void*)free, apr_pool_cleanup_null);
   memcpy(data,tile->encoded_data->buf,tile->encoded_data->size);
   memcpy(&(data[tile->encoded_data->size]),&now,sizeof(apr_time_t));
