@@ -1,4 +1,4 @@
-This fork is just to provide a version that will compile with VS 2012 for Windows 8 64 bit.
+This fork is just to provide a version that will compile with VS 2012 for Windows 8 64 bit from the VS Command Prompt.
 
 1.  Download Mapserver 64 bit headers and libraries from http://archive.gisinternals.com/sdk/. I used http://archive.gisinternals.com/sdk/Download.aspx?file=release-1600-x64-gdal-1-11-1-mapserver-6-4-1-libs.zip.
 
@@ -10,7 +10,7 @@ This fork is just to provide a version that will compile with VS 2012 for Window
 
 5. msbuild Mapcache.vcxproj /t:Build /p:Configuration=Release
 
-Note: to build a static library for use with node-mapcache, edit the CMakeLists.txt file and add/comment out ~line 68:
+Note: to build a static library for use with node-mapcache, edit the CMakeLists.txt file and add/comment out ~line 68, the re-run steps 4 & 5:
 add_library(mapcache STATIC ${mapcache_SOURCES})
 #add_library(mapcache SHARED ${mapcache_SOURCES})
 
