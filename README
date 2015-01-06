@@ -6,7 +6,7 @@ This fork is just to provide a version that will compile with VS 2012 for Window
 
 3. git clone ; cd mapcache; md build; cd build; 
 
-4. cmake -G "Visual Studio 11 2012 Win64" -DCMAKE_PREFIX_PATH=C:\src\release-1600-x64-dev\release-1600  -DAPR_LIBRARY=C:\src\release-1600-x64-dev\release-1600\lib\libapr-1.lib;C:\src\release-1600-x64-dev\release-1600\lib\zlib.lib -DAPU_LIBRARY=C:\src\release-1600-x64-dev\release-1600\lib\libaprutil-1.lib -DAPU_INCLUDE_DIR=C:\src\release-1600-x64-dev\release-1600\include;C:\src\release-1600-x64-dev\regex-0.12;  -DWITH_FCGI=0 -DWITH_APACHE=0  ..
+4. cmake -G "Visual Studio 11 2012 Win64" -DCMAKE_PREFIX_PATH=C:\src\release-1600-x64-dev\release-1600  -DAPR_LIBRARY=C:\src\release-1600-x64-dev\release-1600\lib\libapr-1.lib;C:\src\release-1600-x64-dev\release-1600\lib\zlib.lib -DAPU_LIBRARY=C:\src\release-1600-x64-dev\release-1600\lib\libaprutil-1.lib -DAPU_INCLUDE_DIR=C:\src\release-1600-x64-dev\release-1600\include;C:\src\release-1600-x64-dev\regex-0.12;  -DWITH_FCGI=1  -DFCGI_LIBRARY=C:\enide\ws\src\release-1600-x64-dev\release-1600\lib\libfcgi.lib -DWITH_APACHE=0 -DWITH_MEMCACHE=1 -DWITH_TIFF=0 -DWITH_BERKELEY=0 -DWITH_MAPSERVER=1 ..  ..
 
 5. edit Mapcache.vcxproj and add <ClCompile Include="C:\src\release-1600-x64-dev\regex-0.12\regex.c"  /> in the ItemGroup with the other .c files.  Surely there is a better way, I'm just not familiar enough with cmake/vs.
 
